@@ -1,6 +1,7 @@
 import os
 import json
 from notion_client import Client
+import datetime
 
 def fetch_notion_database(database_id, notion_client):
     """
@@ -92,6 +93,92 @@ def process_property(prop):
     handler = type_handlers.get(prop_type)
     return handler(prop) if handler else None
 
+def process_portal_library_data(results):
+
+    quest_worlds = []
+    pc_worlds = []
+    my_worlds = []
+
+    for result in results:
+        properties = result['properties']
+        is_quest_support = 'Android' in properties['Platform']
+        # 自作ワールド
+        if properties['Author'] == 'prprpurin':
+            my_worlds.append({
+                'ID': properties['ID'],
+                'Name': properties['Name'],
+                'Author': properties['Author'],
+                'RecommendedCapacity': properties['RecommendedCapacity'],
+                'Capacity': properties['Capacity'],
+                'Description': properties['Description'],
+                'ReleaseStatus': properties['ReleaseStatus'],
+                'Comment': properties.get('Comment', ''),
+                'Difficulty': properties.get('Difficulty', 'unknown'),
+                'Platform': {
+                    'PC': True,
+                    'Android': is_quest_support,
+                },
+            })
+        # Quest 対応ワールド
+        elif is_quest_support:
+            quest_worlds.append({
+                'ID': properties['ID'],
+                'Name': properties['Name'],
+                'Author': properties['Author'],
+                'RecommendedCapacity': properties['RecommendedCapacity'],
+                'Capacity': properties['Capacity'],
+                'Description': properties['Description'],
+                'ReleaseStatus': properties['ReleaseStatus'],
+                'Comment': properties.get('Comment', ''),
+                'Difficulty': properties.get('Difficulty', 'unknown'),
+                'Platform': {
+                    'PC': True,
+                    'Android': is_quest_support,
+                },
+            })
+        # PCワールド
+        else:
+            pc_worlds.append({
+                'ID': properties['ID'],
+                'Name': properties['Name'],
+                'Author': properties['Author'],
+                'RecommendedCapacity': properties['RecommendedCapacity'],
+                'Capacity': properties['Capacity'],
+                'Description': properties['Description'],
+                'ReleaseStatus': properties['ReleaseStatus'],
+                'Comment': properties.get('Comment', ''),
+                'Difficulty': properties.get('Difficulty', 'unknown'),
+                'Platform': {
+                    'PC': True,
+                    'Android': is_quest_support,
+                },
+            })
+
+    tz_jst = datetime.timezone(datetime.timedelta(hours=9), name='JST')
+    dt_now = datetime.datetime.now(tz_jst)
+    lastupdate = dt_now.strftime('%Y/%m/%d %H:%M:%S(JST)')
+
+    portal_library_data = {
+        'ReverseCategorys': False,
+        'ShowPrivateWorld': False,
+        'LastUpdate': lastupdate,
+        'Categorys': [
+            {
+                'Category': '攻略済み謎解きワールド(PC&QUEST)',
+                'Worlds': quest_worlds,
+            },
+            {
+                'Category': '攻略済み謎解きワールド(PC)',
+                'Worlds': pc_worlds,
+            },
+            {
+                'Category': 'ワールド製作者が作ったやつ',
+                'Worlds': my_worlds,
+            },
+        ]
+    }
+    return portal_library_data
+
 def main():
     # 環境変数から必要な情報を取得
     notion_token = os.environ['NOTION_TOKEN']
@@ -106,10 +193,14 @@ def main():
 
         # データの加工
         processed_data = process_database_data(database_results)
+        portal_library_data = process_portal_library_data(processed_data)
+
+        # ディレクトリ作成
+        os.mkdir(os.path.join(os.path.dirname(__file__), '../docs'))
 
         # JSONファイルに保存
-        with open(os.path.join(os.path.dirname(__file__), '../docs/notion_data.json'), 'w', encoding='utf-8') as f:
-            json.dump(processed_data, f, ensure_ascii=False, indent=2)
+        with open(os.path.join(os.path.dirname(__file__), '../docs/portal_library_data.json'), 'w', encoding='utf-8') as f:
+            json.dump(portal_library_data, f, ensure_ascii=False, indent=2)
 
         print(f"Successfully synced {len(processed_data)} pages from Notion database.")
 
