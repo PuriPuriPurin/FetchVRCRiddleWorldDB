@@ -108,7 +108,7 @@ def main():
         processed_data = process_database_data(database_results)
 
         # JSONファイルに保存
-        with open(os.path.join(os.path.dirname(__file__), '../notion_data.json'), 'w', encoding='utf-8') as f:
+        with open(os.path.join(os.path.dirname(__file__), '../docs/notion_data.json'), 'w', encoding='utf-8') as f:
             json.dump(processed_data, f, ensure_ascii=False, indent=2)
 
         print(f"Successfully synced {len(processed_data)} pages from Notion database.")
