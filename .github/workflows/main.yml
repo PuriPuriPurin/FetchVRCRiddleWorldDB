@@ -24,7 +24,7 @@ jobs:
       - name: Fetch Notion Database
         env:
           NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
-          DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
         run: |
           python scripts/sync_notion.py
       
