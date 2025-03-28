@@ -272,8 +272,12 @@ def process_portal_library_data(results):
             ori_file = properties['ClearThumbnail'][0]['local_path']
             symlink_file = os.path.join(os.path.dirname(ori_file), f'{str(vrc_image_id).zfill(4)}.png')
             os.symlink(ori_file, symlink_file)
+            image_id = vrc_image_id
             vrc_image_id = vrc_image_id + 1
             print(f'シンボリックリンク: {symlink_file} を追加')
+        else:
+            # 画像未登録の場合は -1 にしておく
+            image_id = -1
 
         # 自作ワールド
         if properties['Author'] == 'prprpurin':
@@ -291,7 +295,7 @@ def process_portal_library_data(results):
                     'PC': True,
                     'Android': is_quest_support,
                 },
-                'ImageId': vrc_image_id,
+                'ImageId': image_id,
             })
         # Quest 対応ワールド
         elif is_quest_support:
@@ -309,7 +313,7 @@ def process_portal_library_data(results):
                     'PC': True,
                     'Android': is_quest_support,
                 },
-                'ImageId': vrc_image_id,
+                'ImageId': image_id,
             })
         # PCワールド
         else:
@@ -327,7 +331,7 @@ def process_portal_library_data(results):
                     'PC': True,
                     'Android': is_quest_support,
                 },
-                'ImageId': vrc_image_id,
+                'ImageId': image_id,
             })
 
     tz_jst = datetime.timezone(datetime.timedelta(hours=9), name='JST')
