@@ -6,6 +6,8 @@ name = "pypi"
 [packages]
 notion-client = "*"
 dotenv = "*"
+requests = "*"
+pillow = "*"
 
 [dev-packages]
 
