@@ -26,11 +26,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install notion-client requests Pillow
 
-      - name: Debug file path
+      - name: Update VRChat World Database
+        env:
+          VRC_APP_NAME: ${{ secrets.VRCHAT_API_KEY }}
+          VRC_APP_VERSION: ${{ secrets.VRCHAT_API_VERSION }}
+          VRC_MAIL: ${{ secrets.VRCHAT_MAIL }}
         run: |
-          ls -R
+          python ./vrc_world_collector/update.py
+
       
-      - name: Fetch Notion Database
+      - name: Fetch Notion Database and Generate Json and Images
         env:
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY}}
           NOTION_DB_ID: ${{ secrets.NOTION_DB_ID }}
