@@ -31,6 +31,8 @@ jobs:
           VRC_APP_NAME: ${{ secrets.VRCHAT_API_KEY }}
           VRC_APP_VERSION: ${{ secrets.VRCHAT_API_VERSION }}
           VRC_MAIL: ${{ secrets.VRCHAT_MAIL }}
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY}}
+          NOTION_DB_ID: ${{ secrets.NOTION_DB_ID }}
         run: |
           python ./vrc_world_collector/update.py
 
