@@ -1,8 +1,5 @@
 import sync_notion
 from dotenv import load_dotenv
-import dotenv
-import os
-import shutil
 
 def main():
     load_dotenv()

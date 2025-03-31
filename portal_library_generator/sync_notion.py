@@ -8,13 +8,15 @@ from PIL import Image
 import io
 import shutil
 
-def fetch_notion_database(database_id, notion_client):
+def fetch_notion_database(database_id, notion_client, sort_column='PublicationDate', sort_direction='descending'):
     """
-    Notion データベースからすべてのページを取得する関数
+    Notion データベースからすべてのページを取得する関数（ソート対応）
     
     Args:
         database_id (str): 取得対象のデータベースID
         notion_client (Client): Notion クライアント
+        sort_column (str, optional): ソート対象の列名（デフォルトは 'PublicationDate'）
+        sort_direction (str, optional): ソートの方向 ('ascending' または 'descending')
     
     Returns:
         list: データベースのすべてのページデータ
@@ -23,12 +25,21 @@ def fetch_notion_database(database_id, notion_client):
     start_cursor = None
     has_more = True
 
+    # ソート条件を設定
+    sorts = []
+    if sort_column:
+        sorts.append({
+            'property': sort_column,
+            'direction': sort_direction  # 'ascending' または 'descending'
+        })
+
     while has_more:
         # データベースをクエリ（ページネーション対応）
         response = notion_client.databases.query(
             database_id=database_id,
             start_cursor=start_cursor if start_cursor else None,
-            page_size=100  # 1回のリクエストで取得するページ数（最大100）
+            page_size=100,  # 1回のリクエストで取得するページ数（最大100）
+            sorts=sorts  # ソート条件を追加
         )
 
         # 結果を蓄積
@@ -255,9 +266,7 @@ def remove_symlinks(directory):
 
 def process_portal_library_data(results):
 
-    quest_worlds = []
-    pc_worlds = []
-    my_worlds = []
+    categories = []
 
     vrc_image_id = 0
 
@@ -279,61 +288,40 @@ def process_portal_library_data(results):
             # 画像未登録の場合は -1 にしておく
             image_id = -1
 
-        # 自作ワールド
-        if properties['Author'] == 'prprpurin':
-            my_worlds.append({
-                'ID': properties['ID'],
-                'Name': properties['Name'],
-                'Author': properties['Author'],
-                'RecommendedCapacity': properties['RecommendedCapacity'],
-                'Capacity': properties['Capacity'],
-                'Description': properties['Description'],
-                'ReleaseStatus': properties['ReleaseStatus'],
-                'Comment': properties.get('Comment', ''),
-                'Difficulty': properties.get('Difficulty', 'unknown'),
-                'Platform': {
-                    'PC': True,
-                    'Android': is_quest_support,
-                },
-                'ImageId': image_id,
-            })
-        # Quest 対応ワールド
-        elif is_quest_support:
-            quest_worlds.append({
-                'ID': properties['ID'],
-                'Name': properties['Name'],
-                'Author': properties['Author'],
-                'RecommendedCapacity': properties['RecommendedCapacity'],
-                'Capacity': properties['Capacity'],
-                'Description': properties['Description'],
-                'ReleaseStatus': properties['ReleaseStatus'],
-                'Comment': properties.get('Comment', ''),
-                'Difficulty': properties.get('Difficulty', 'unknown'),
-                'Platform': {
-                    'PC': True,
-                    'Android': is_quest_support,
-                },
-                'ImageId': image_id,
-            })
-        # PCワールド
-        else:
-            pc_worlds.append({
-                'ID': properties['ID'],
-                'Name': properties['Name'],
-                'Author': properties['Author'],
-                'RecommendedCapacity': properties['RecommendedCapacity'],
-                'Capacity': properties['Capacity'],
-                'Description': properties['Description'],
-                'ReleaseStatus': properties['ReleaseStatus'],
-                'Comment': properties.get('Comment', ''),
-                'Difficulty': properties.get('Difficulty', 'unknown'),
-                'Platform': {
-                    'PC': True,
-                    'Android': is_quest_support,
-                },
-                'ImageId': image_id,
-            })
+        category = properties.get('Category', None)
 
+        if category is None:
+            print(f"ワールドにカテゴリが設定されていないためスキップ: {properties['Name']}")
+            continue
+
+        # カテゴリが未登録の場合は新規追加
+        existing_category = next((cat for cat in categories if cat['Category'] == category), None)
+        if not existing_category:
+            existing_category = {
+                'Category': category,
+                'Worlds': []
+            }
+            categories.append(existing_category)
+
+        # 該当するカテゴリのWorldsに値を追加
+        existing_category['Worlds'].append({
+            'ID': properties['ID'],
+            'Name': properties['Name'],
+            'Author': properties['Author'],
+            'RecommendedCapacity': properties['RecommendedCapacity'],
+            'Capacity': properties['Capacity'],
+            'Description': properties['Description'],
+            'ReleaseStatus': properties['ReleaseStatus'],
+            'Comment': properties.get('Comment', ''),
+            'Difficulty': properties.get('Difficulty', 'unknown'),
+            'Platform': {
+                'PC': True,
+                'Android': is_quest_support,
+            },
+            'ImageId': image_id,
+        })
+
+    # 最終更新日時を取得
     tz_jst = datetime.timezone(datetime.timedelta(hours=9), name='JST')
     dt_now = datetime.datetime.now(tz_jst)
     lastupdate = dt_now.strftime('%Y/%m/%d %H:%M:%S(JST)')
@@ -342,27 +330,14 @@ def process_portal_library_data(results):
         'ReverseCategorys': False,
         'ShowPrivateWorld': False,
         'LastUpdate': lastupdate,
-        'Categorys': [
-            {
-                'Category': '攻略済み謎解きワールド(PC&QUEST)',
-                'Worlds': quest_worlds,
-            },
-            {
-                'Category': '攻略済み謎解きワールド(PC)',
-                'Worlds': pc_worlds,
-            },
-            {
-                'Category': 'ワールド製作者が作ったやつ',
-                'Worlds': my_worlds,
-            },
-        ]
+        'Categorys': categories,
     }
     return portal_library_data
 
 def main():
     # 環境変数から必要な情報を取得
-    notion_token = os.environ['NOTION_TOKEN']
-    database_id = os.environ['NOTION_DATABASE_ID']
+    notion_token = os.environ['NOTION_API_KEY']
+    database_id = os.environ['NOTION_DB_ID']
 
     try:
         # Notion クライアントの初期化

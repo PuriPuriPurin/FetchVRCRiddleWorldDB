@@ -1,5 +1,9 @@
 .env
 __pycache__/
-docs/
+docs/images
+docs/portal_library_data.json
 tmp/
 notion_images_log.json
+
+vrc_world_collector/world_list/cross_platform_list.txt
+vrc_world_collector/world_list/pc_only_list.txt
