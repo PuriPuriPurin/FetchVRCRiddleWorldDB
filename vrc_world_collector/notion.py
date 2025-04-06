@@ -9,13 +9,21 @@ def get_registered_world_id(notion_manager):
 
 def add_record(notion_manager: NotionDatabaseManager,
     name: str, author:str, description: str, platform_support_pc: bool, platform_support_quest: bool,
-    id: str, recommended_capacity: int, capacity: int, release_status: str):
+    id: str, recommended_capacity: int, capacity: int, release_status: str, publication_date: str):
 
     platform = []
     if platform_support_pc:
         platform.append('PC')
     if platform_support_quest:
         platform.append('Android')
+
+    if publication_date == 'none':
+        print('Private worldなので、公開日を登録しない')
+        publication_date = {}
+    else:
+        publication_date = {
+            'PublicationDate': npb.date(publication_date),
+        }
 
     # プロジェクト管理データベースへのレコード追加
     project_properties = {
@@ -27,6 +35,7 @@ def add_record(notion_manager: NotionDatabaseManager,
         'RecommendedCapacity': npb.number(recommended_capacity),
         'Capacity': npb.number(capacity),
         'ReleaseStatus': npb.select(release_status),
+        **publication_date,
     }
 
     # レコードを追加

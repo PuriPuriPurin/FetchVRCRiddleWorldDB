@@ -3,7 +3,8 @@ from dotenv import load_dotenv
 import notion
 from notion_database_manager import NotionDatabaseManager
 import vrchat
-from vrchatapi import (WorldsApi, ApiClient, NotFoundException)
+from vrchatapi import (WorldsApi, ApiClient)
+from vrchatapi.exceptions import NotFoundException
 import re
 
 def get_world_api(api_client):

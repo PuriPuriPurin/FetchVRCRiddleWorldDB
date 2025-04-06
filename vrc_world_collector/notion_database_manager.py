@@ -151,45 +151,36 @@ class NotionDatabaseManager:
             return []
 
     def get_column_values(self, column_name: str) -> List[Any]:
-            """
-            特定のデータベース内の指定された列のすべての値を取得
+        """
+        特定のデータベース内の指定された列のすべての値を取得
 
-            Args:
-                column_name (str): 取得したい列名
+        Args:
+            column_name (str): 取得したい列名
 
-            Returns:
-                List[Any]: 指定された列のすべての値
-            """
-            url = f'{self.base_url}/databases/{self.database_id}/query'
-            
-            # すべてのページを取得するためのペイロード
-            payload = {
-                "page_size": 100  # 1ページあたりの最大取得数
-            }
+        Returns:
+            List[Any]: 指定された列のすべての値
+        """
+        try:
+            # get_raw_values を利用してすべてのデータを取得
+            all_data = self.get_raw_values()
 
-            try:
-                # データベースのクエリを実行
-                response = requests.post(url, headers=self.headers, json=payload)
-                response.raise_for_status()
-                data = response.json()
+            # 指定された列の値を抽出
+            column_values = []
+            for page in all_data:
+                properties = page.get('properties', {})
+                column_data = properties.get(column_name)
+                
+                if column_data:
+                    # 列の型に応じて値を抽出
+                    value = self._extract_column_value(column_data)
+                    if value is not None:
+                        column_values.append(value)
 
-                # 指定された列の値を抽出
-                column_values = []
-                for page in data.get('results', []):
-                    properties = page.get('properties', {})
-                    column_data = properties.get(column_name)
-                    
-                    if column_data:
-                        # 列の型に応じて値を抽出
-                        value = self._extract_column_value(column_data)
-                        if value is not None:
-                            column_values.append(value)
+            return column_values
 
-                return column_values
-
-            except requests.exceptions.RequestException as e:
-                print(f"データ取得中にエラーが発生: {e}")
-                return []
+        except requests.exceptions.RequestException as e:
+            print(f"データ取得中にエラーが発生: {e}")
+            return []
 
     def _extract_column_value(self, column_data: dict) -> Any:
         """

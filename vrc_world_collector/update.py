@@ -1,5 +1,4 @@
 import os
-# from dotenv import load_dotenv
 from notion_database_manager import NotionDatabaseManager
 from notion_property_builder import NotionPropertyBuilder
 import vrchat
@@ -51,10 +50,19 @@ def main():
                 world_api = get_world_api(api_client)
                 world_info = vrchat.get_world_info(world_api, world_id)
 
+                if world_info['publication_date'] == 'none':
+                    print('Private worldなので、公開日を登録しない')
+                    publication_date = {}
+                else:
+                    publication_date = {
+                        'PublicationDate': NotionPropertyBuilder.date(world_info['publication_date']),
+                    }
+
                 update_properties = {
                     'Description': NotionPropertyBuilder.rich_text(world_info['description']),
                     'Author': NotionPropertyBuilder.rich_text(world_info['author']),
-                    'PublicationDate': NotionPropertyBuilder.date(world_info['publicationDate']),
+                    'ReleaseStatus': NotionPropertyBuilder.select(world_info['release_status']),
+                    **publication_date,
                 }
                 updated_page = notion_manager.update_page_properties(page_id, update_properties, world_info['name'])
                 if updated_page:

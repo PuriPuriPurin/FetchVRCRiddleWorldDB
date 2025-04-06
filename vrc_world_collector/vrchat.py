@@ -27,5 +27,5 @@ def get_world_info(world_api: WorldsApi, world_id: str):
             'capacity': world.capacity,
             'description': fix_text(world.description),
             'release_status': world.release_status,
-            'publicationDate': world.publication_date,
+            'publication_date': world.publication_date,
         }
