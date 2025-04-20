@@ -4,6 +4,7 @@ from notion_property_builder import NotionPropertyBuilder
 import vrchat
 import vrchatapi
 from vrchatapi import WorldsApi
+from vrchatapi.exceptions import ApiException
 import re
 
 def get_world_api(api_client):
@@ -48,25 +49,34 @@ def main():
                 page_id = page.get('id')
                 world_id = properties.get('ID', {}).get('rich_text', [])[0]['plain_text']
                 world_api = get_world_api(api_client)
-                world_info = vrchat.get_world_info(world_api, world_id)
 
-                if world_info['publication_date'] == 'none':
-                    print('Private worldなので、公開日を登録しない')
-                    publication_date = {}
-                else:
-                    publication_date = {
-                        'PublicationDate': NotionPropertyBuilder.date(world_info['publication_date']),
+                try:
+                    world_info = vrchat.get_world_info(world_api, world_id)
+
+                    if world_info['publication_date'] == 'none':
+                        print('Private worldなので、公開日を登録しない')
+                        publication_date = {}
+                    else:
+                        publication_date = {
+                            'PublicationDate': NotionPropertyBuilder.date(world_info['publication_date']),
+                        }
+
+                    update_properties = {
+                        'Description': NotionPropertyBuilder.rich_text(world_info['description']),
+                        'Author': NotionPropertyBuilder.rich_text(world_info['author']),
+                        'ReleaseStatus': NotionPropertyBuilder.select(world_info['release_status']),
+                        **publication_date,
                     }
-
-                update_properties = {
-                    'Description': NotionPropertyBuilder.rich_text(world_info['description']),
-                    'Author': NotionPropertyBuilder.rich_text(world_info['author']),
-                    'ReleaseStatus': NotionPropertyBuilder.select(world_info['release_status']),
-                    **publication_date,
-                }
-                updated_page = notion_manager.update_page_properties(page_id, update_properties, world_info['name'])
-                if updated_page:
-                    print(f"ページID: {updated_page['id']} を更新しました")
+                    updated_page = notion_manager.update_page_properties(page_id, update_properties, world_info['name'])
+                    if updated_page:
+                        print(f"ページID: {updated_page['id']} を更新しました")
+                except ApiException as api_error:
+                    if api_error.status == 429:
+                        print("エラー: レートリミットを超えました (429 Too Many Requests)。処理を中断します。")
+                        return
+                    else:
+                        print(f"VRChat API エラーが発生しました: {api_error}")
+                        continue
     except Exception as e:
         # 中断しないようにする
         print(f"エラーが発生しました: {e}")
